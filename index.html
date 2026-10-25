@@ -11,6 +11,7 @@
   <script>window.CAMPELO_API_URL = window.CAMPELO_API_URL || '';</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --green: #008c45; --green-dark: #006738; --blue: #005ea6;
@@ -20,7 +21,7 @@
     }
     * { box-sizing: border-box; }
     html { background: var(--surface); }
-    body { margin: 0; min-height: 100dvh; color: var(--ink); background: var(--surface); font-family: Georgia, "Times New Roman", serif; }
+    body { margin: 0; min-height: 100dvh; color: var(--ink); background: var(--surface); font-family: "DM Sans", "Trebuchet MS", sans-serif; }
     button, input { font: inherit; }
     button { cursor: pointer; }
     .app { max-width: 520px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
@@ -137,8 +138,14 @@
     .assistant { border: 1px solid #cfe5d5; border-left-width: 5px; border-radius: 8px; }
     .scanner { height: 430px; border-radius: 8px; }
     .quick-actions { grid-template-columns: repeat(3, minmax(0,1fr)); }
-    .quick-action { min-height: 92px; }
+    .scan-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+    .scan-summary .metric { min-width: 0; border-radius: 8px; }
+    .quick-actions { display: grid; gap: 10px; margin-bottom: 14px; }
+    .quick-action { min-width: 0; min-height: 92px; display: grid; align-content: center; justify-items: center; gap: 6px; padding: 10px 6px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+    .quick-action span { color: var(--green); font-size: 25px; line-height: 1; }
+    .quick-action strong { font: 700 12px/1.2 "DM Sans", sans-serif; }
     .quick-action:focus-visible, .button:focus-visible, .nav-button:focus-visible { outline: 3px solid #f2c94c; outline-offset: 2px; }
+    .photo-status { margin: 8px 2px 14px; color: var(--muted); font: 12px/1.5 "DM Sans", sans-serif; }
     .product { gap: 16px; }
     nav { bottom: 12px; width: min(620px, calc(100% - 24px)); min-height: 68px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 18px 50px rgba(28,58,40,.16); }
     .nav-button { border-radius: 7px; }
@@ -183,7 +190,7 @@
     </header>
 
     <main>
-      <div id="appVersion" style="position:fixed;right:10px;bottom:74px;z-index:40;padding:4px 7px;border:1px solid #ccd7d0;border-radius:5px;background:#fff;color:#68756e;font:700 10px 'Trebuchet MS',sans-serif">APP 5.1</div>
+      <div id="appVersion" style="position:fixed;right:10px;bottom:74px;z-index:40;padding:4px 7px;border:1px solid #ccd7d0;border-radius:5px;background:#fff;color:#68756e;font:700 10px 'Trebuchet MS',sans-serif">APP 5.2</div>
       <section id="view-inicio" class="view active">
         <div class="panel welcome">
           <div class="welcome-icon" aria-hidden="true">🛒</div>
@@ -285,6 +292,7 @@
     const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     async function loadCatalog() {
+      let catalogMode = 'online';
       try {
         let response;
         if (location.hostname.endsWith('.github.io')) {
@@ -299,18 +307,25 @@
         state.catalog = await response.json();
       } catch (error) {
         console.warn(error);
-        document.querySelector('#onlineStatusDot').style.background = '#d97706';
-        document.querySelector('#onlineStatusText').textContent = 'Modo offline · catálogo salvo neste dispositivo';
-        showToast('Modo offline', 'Usando catálogo local.');
         try {
-          state.catalog = await fetch('./produtos.json', { cache: 'no-store' }).then(response => response.json());
+          const response = await fetch('./produtos.json', { cache: 'no-store' });
+          if (!response.ok) throw new Error('Catálogo local indisponível');
+          state.catalog = await response.json();
+          catalogMode = 'local';
         } catch (fallbackError) {
           console.error(fallbackError);
           state.catalog = await queryCatalog().catch(() => []);
+          catalogMode = 'offline';
         }
       }
-      document.querySelector('#onlineStatusDot').style.background = '#008c45';
-      document.querySelector('#onlineStatusText').textContent = `Catálogo online · ${state.catalog.length} produtos disponíveis`;
+      document.querySelector('#onlineStatusDot').style.background = catalogMode === 'online' ? '#008c45' : '#d97706';
+      const catalogStatus = {
+        online: 'Catálogo online',
+        local: 'Catálogo local disponível',
+        offline: 'Modo offline · catálogo salvo neste dispositivo'
+      };
+      document.querySelector('#onlineStatusText').textContent = `${catalogStatus[catalogMode]} · ${state.catalog.length} produtos`;
+      if (catalogMode === 'offline') showToast('Modo offline', 'Usando catálogo salvo neste dispositivo.');
       AssistenteIA.inicializar(state.catalog);
       renderOffers();
       db.saveProducts(state.catalog).catch(error => console.warn('Catálogo não persistido:', error));
@@ -766,7 +781,16 @@
       await restoreCart();
       setInterval(() => loadCatalog(), 60000);
       route(location.hash.slice(1) || 'inicio');
-      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (window.campeloReloading) return;
+          window.campeloReloading = true;
+          window.location.reload();
+        });
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+          .then(registration => registration.update())
+          .catch(console.error);
+      }
     });
   </script>
 </body>
