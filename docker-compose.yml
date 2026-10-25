@@ -1,0 +1,33 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4174:4173"
+    environment:
+      DATABASE_URL: postgres://campelo:campelo@postgres:5432/campelo_smart
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-troque-esta-chave}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-http://localhost:4173}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: campelo_smart
+      POSTGRES_USER: campelo
+      POSTGRES_PASSWORD: campelo
+    ports:
+      - "5432:5432"
+    volumes:
+      - campelo_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campelo -d campelo_smart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  campelo_data:

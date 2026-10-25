@@ -1,0 +1,22 @@
+{
+  "name": "Campelo Smart — Compre Já",
+  "short_name": "Campelo Smart",
+  "description": "Compre sem filas, veja ofertas e produtos próximos de vencer com inteligência artificial",
+  "id": "/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#008C45",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "prefer_related_applications": false,
+  "categories": ["shopping", "productivity"],
+  "shortcuts": [
+    { "name": "Escanear produtos", "short_name": "Escanear", "url": "./#escanear", "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Ofertas do dia", "short_name": "Ofertas", "url": "./#ofertas", "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+  ]
+}

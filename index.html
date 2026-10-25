@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#008c45">
+  <meta name="description" content="Campelo Smart: compras rápidas, ofertas e validade inteligente.">
+  <title>Campelo Smart</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --green: #008c45; --green-dark: #006738; --blue: #005ea6;
+      --orange: #d97706; --red: #dc2626; --ink: #17211b;
+      --muted: #68756e; --line: #dde5df; --paper: #fff;
+      --surface: #f3f6f4; --shadow: 0 8px 24px rgba(23,33,27,.08);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--surface); }
+    body { margin: 0; min-height: 100dvh; color: var(--ink); background: var(--surface); font-family: Georgia, "Times New Roman", serif; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 520px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
+    .topbar { position: sticky; top: 0; z-index: 20; color: #fff; background: var(--green); border-bottom: 4px solid #f2c94c; }
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 12px 18px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; background: #fff; color: var(--green); border-radius: 8px; font-size: 23px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0; font-size: 21px; letter-spacing: 0; }
+    .tagline { margin: 2px 0 0; font-family: "Trebuchet MS", sans-serif; font-size: 11px; opacity: .85; }
+    .icon-button { width: 40px; height: 40px; padding: 0; border: 1px solid rgba(255,255,255,.35); border-radius: 8px; background: transparent; color: #fff; font-size: 22px; }
+    main { padding: 18px 16px 96px; }
+    .view { display: none; animation: enter .22s ease-out; }
+    .view.active { display: block; }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
+    .eyebrow { color: var(--green); font: 700 12px/1 "Trebuchet MS", sans-serif; text-transform: uppercase; }
+    .title-row { display: flex; justify-content: space-between; align-items: end; margin: 4px 0 16px; }
+    .title-row h2 { margin: 4px 0 0; font-size: 27px; }
+    .panel { margin-bottom: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); }
+    .welcome { padding: 26px 22px; text-align: center; }
+    .welcome-icon { font-size: 54px; }
+    .welcome h2 { margin: 10px 0 8px; font-size: 28px; }
+    .welcome p { color: var(--muted); line-height: 1.55; }
+    label { display: block; margin-bottom: 7px; font: 700 13px "Trebuchet MS", sans-serif; }
+    input { width: 100%; min-height: 48px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid #bac6bf; border-radius: 6px; background: #fff; color: var(--ink); }
+    input:focus { outline: 3px solid rgba(0,140,69,.16); border-color: var(--green); }
+    .button { width: 100%; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 6px; background: var(--green); color: #fff; font: 700 15px "Trebuchet MS", sans-serif; }
+    .button.secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+    .button.warn { background: var(--orange); }
+    .button:active { transform: translateY(1px); }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .feature { margin: 0; padding: 12px 8px; border: 1px solid var(--line); background: #fff; text-align: center; }
+    .feature strong { display: block; margin: 5px 0 3px; font: 700 13px "Trebuchet MS", sans-serif; }
+    .feature span { color: var(--muted); font-size: 12px; }
+    .assistant { position: relative; margin-bottom: 14px; padding: 14px 14px 14px 48px; border-left: 4px solid var(--green); background: #edf8f1; }
+    .assistant::before { content: "✦"; position: absolute; left: 15px; top: 13px; color: var(--green); font-size: 21px; }
+    .assistant strong { display: block; margin-bottom: 4px; font: 700 13px "Trebuchet MS", sans-serif; }
+    .assistant p { margin: 0; color: #405249; font-size: 14px; line-height: 1.45; }
+    .scanner { height: 280px; display: grid; place-items: center; margin-bottom: 12px; overflow: hidden; border-radius: 8px; background: #202621; }
+    .scanner video { width: 100%; height: 100%; object-fit: cover; }
+    .scan-frame { width: 72%; height: 58%; position: absolute; border: 2px solid #fff; }
+    .scan-frame::before { content: ""; position: absolute; left: 0; right: 0; top: 46%; height: 2px; background: #f2c94c; box-shadow: 0 0 12px #f2c94c; }
+    .scan-frame span { position: absolute; left: 0; right: 0; bottom: -28px; color: #fff; text-align: center; font: 12px "Trebuchet MS", sans-serif; }
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .product { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .product:first-child { padding-top: 0; }
+    .product:last-child { border-bottom: 0; }
+    .product-emoji { font-size: 30px; }
+    .product-name { font: 700 14px/1.3 "Trebuchet MS", sans-serif; }
+    .product-meta { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .price { color: var(--green-dark); font: 700 16px "Trebuchet MS", sans-serif; text-align: right; }
+    .old-price { color: #89918d; font-size: 12px; text-decoration: line-through; }
+    .compact-button { width: auto; min-height: 34px; padding: 7px 10px; }
+    .remove { width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: #59615d; }
+    .empty { padding: 34px 18px; color: var(--muted); text-align: center; }
+    .totals { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; border-top: 4px solid var(--green); }
+    .totals-label { color: var(--muted); font: 700 13px "Trebuchet MS", sans-serif; }
+    .totals strong { grid-row: 1 / 3; grid-column: 2; font-size: 29px; }
+    .savings { color: var(--green-dark); font: 700 13px "Trebuchet MS", sans-serif; }
+    .offer { border-left: 4px solid var(--green); }
+    .offer.urgente { border-left-color: var(--red); background: #fff8f7; }
+    .offer.oferta { border-left-color: var(--orange); background: #fffaf0; }
+    .offer-top { display: grid; grid-template-columns: 42px 1fr auto; gap: 10px; }
+    .offer-name { font: 700 15px "Trebuchet MS", sans-serif; }
+    .offer-expiry { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .discount { color: var(--red); font: 700 15px "Trebuchet MS", sans-serif; }
+    .offer .button { margin-top: 14px; }
+    .payment { display: grid; gap: 10px; }
+    .payment .button { min-height: 58px; }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .search-row input { margin: 0; }
+    .search-row .button { width: auto; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric { padding: 14px 8px; border: 1px solid var(--line); background: #fff; text-align: center; }
+    .metric strong { display: block; color: var(--green-dark); font-size: 20px; }
+    .metric span { color: var(--muted); font: 700 11px "Trebuchet MS", sans-serif; }
+    .product-edit { display: grid; grid-template-columns: 1fr 88px; gap: 8px; }
+    .product-edit input { min-height: 38px; margin: 0; }
+    .loyalty { display: flex; justify-content: space-between; align-items: center; }
+    .loyalty strong { color: var(--green-dark); font-size: 22px; }
+    .stock { color: var(--muted); font: 700 12px "Trebuchet MS", sans-serif; }
+    .stock.low { color: var(--red); }
+    .receipt { text-align: center; }
+    .receipt-check { width: 72px; height: 72px; display: grid; place-items: center; margin: 4px auto 12px; border-radius: 50%; background: #e8f6ed; color: var(--green); font-size: 42px; }
+    .receipt-code { margin: 18px 0; padding: 22px 10px; border: 2px dashed #88a394; border-radius: 8px; color: var(--green-dark); font: 700 34px monospace; letter-spacing: 5px; }
+    .receipt-details { color: var(--muted); font: 13px/1.7 "Trebuchet MS", sans-serif; }
+    nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(520px, 100%); transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); min-height: 72px; border-top: 1px solid var(--line); background: rgba(255,255,255,.97); box-shadow: 0 -6px 18px rgba(23,33,27,.07); }
+    .nav-button { position: relative; border: 0; background: none; color: #738077; font: 700 11px "Trebuchet MS", sans-serif; }
+    .nav-button span { display: block; margin-bottom: 3px; font-size: 21px; }
+    .nav-button.active { color: var(--green); }
+    .badge { position: absolute; top: 7px; left: 60%; min-width: 18px; height: 18px; padding: 2px 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10px; }
+    .toast { position: fixed; z-index: 50; top: 86px; left: 50%; width: min(430px, calc(100% - 32px)); transform: translate(-50%, -120px); padding: 13px 16px; border-left: 4px solid var(--green); border-radius: 6px; background: #fff; box-shadow: 0 12px 36px rgba(23,33,27,.22); opacity: 0; transition: .25s ease; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .toast strong { display: block; margin-bottom: 2px; font: 700 13px "Trebuchet MS", sans-serif; }
+    .toast p { margin: 0; color: var(--muted); font-size: 13px; }
+    [hidden] { display: none !important; }
+    @media (min-width: 700px) { body { padding: 18px 0; } .app { min-height: calc(100dvh - 36px); border: 1px solid var(--line); box-shadow: 0 18px 60px rgba(23,33,27,.14); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand"><div class="brand-mark">C</div><div><h1>Campelo Smart</h1><p class="tagline">Compre rápido. Economize certo.</p></div></div>
+        <button class="icon-button" type="button" aria-label="Abrir painel da loja" id="adminButton">⚙</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="view-inicio" class="view active">
+        <div class="panel welcome">
+          <div class="welcome-icon" aria-hidden="true">🛒</div>
+          <h2>Bem-vindo ao Campelo</h2>
+          <p>Escaneie produtos, acompanhe ofertas por validade e finalize suas compras sem filas.</p>
+          <label for="clientIdentifier">CPF ou telefone</label>
+          <input id="clientIdentifier" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="Digite seu CPF ou telefone">
+          <button class="button" id="startButton" type="button">Começar a comprar</button>
+        </div>
+        <div class="features">
+          <div class="feature"><span>30 s</span><strong>Sem filas</strong><span>Compra ágil</span></div>
+          <div class="feature"><span>↓ 40%</span><strong>Validade</strong><span>Descontos reais</span></div>
+          <div class="feature"><span>✦</span><strong>Assistente</strong><span>Ofertas úteis</span></div>
+        </div>
+      </section>
+
+      <section id="view-escanear" class="view">
+        <div class="assistant"><strong>Assistente Campelo</strong><p id="assistantSpeech">Posicione o código no leitor. Vou informar o preço, a validade e as melhores ofertas.</p></div>
+        <div class="scanner" aria-label="Área do leitor de código de barras"><video id="cameraPreview" muted playsinline hidden></video><div class="scan-frame" id="scanFrame"><span>Área de leitura</span></div></div>
+        <div class="action-row"><button class="button" id="cameraButton" type="button">Abrir câmera</button><button class="button secondary" id="manualScanButton" type="button">Digitar código</button></div>
+        <div class="panel" id="manualScan" hidden><label for="manualCode">Código de barras</label><div class="search-row"><input id="manualCode" inputmode="numeric" autocomplete="off" placeholder="Ex.: 7891000000101"><button class="button" id="findCodeButton" type="button">Buscar</button></div></div>
+        <div class="panel" id="recommendations" hidden><span class="eyebrow">Sugestões</span><h3 style="margin-top:5px">Para acompanhar</h3><div id="recommendationList"></div></div>
+      </section>
+
+      <section id="view-carrinho" class="view">
+        <div class="title-row"><div><span class="eyebrow">Compra atual</span><h2>Seu carrinho</h2></div></div>
+        <div class="panel" id="cartPanel"></div>
+        <div class="panel totals"><span class="totals-label">Subtotal</span><strong id="cartTotal">R$ 0,00</strong><span class="savings" id="cartSavings">Economia R$ 0,00</span></div>
+        <button class="button" type="button" data-route="pagamento">Escolher pagamento</button>
+      </section>
+
+      <section id="view-ofertas" class="view">
+        <div class="title-row"><div><span class="eyebrow">Preços inteligentes</span><h2>Ofertas do dia</h2></div></div>
+        <div class="assistant"><strong>Resumo inteligente</strong><p id="offersSummary">Calculando ofertas disponíveis...</p></div>
+        <div id="offersList"></div>
+      </section>
+
+      <section id="view-pesquisa" class="view">
+        <div class="title-row"><div><span class="eyebrow">Catálogo completo</span><h2>Pesquisar produtos</h2></div></div>
+        <div class="panel"><label for="catalogSearch">Nome ou código</label><input id="catalogSearch" type="search" placeholder="Leite, arroz, 789..."><div id="searchResults"></div></div>
+      </section>
+
+      <section id="view-admin" class="view">
+        <div class="title-row"><div><span class="eyebrow">Operação local</span><h2>Painel da loja</h2></div></div>
+        <div class="metrics" id="adminMetrics"></div>
+        <div class="panel"><span class="eyebrow">Estoque e validade</span><div id="adminProducts"></div></div>
+        <div class="panel"><span class="eyebrow">Dados</span><button class="button secondary" type="button" id="exportButton">Exportar backup JSON</button></div>
+      </section>
+
+      <section id="view-pagamento" class="view">
+        <div class="title-row"><div><span class="eyebrow">Finalização</span><h2>Forma de pagamento</h2></div></div>
+        <div class="panel payment">
+          <button class="button" type="button" data-payment="PIX">PIX — pagamento à vista</button>
+          <button class="button secondary" type="button" data-payment="Crédito">Cartão de crédito</button>
+          <button class="button secondary" type="button" data-payment="Débito">Cartão de débito</button>
+          <button class="button secondary" type="button" data-payment="Saída">Pagar na saída</button>
+        </div>
+      </section>
+
+      <section id="view-comprovante" class="view">
+        <div class="panel receipt">
+          <div class="receipt-check">✓</div><h2>Compra finalizada</h2><p>Apresente o código na saída.</p>
+          <div class="receipt-code" id="exitCode">000000</div>
+          <div class="receipt-details" id="receiptDetails"></div>
+        </div>
+        <button class="button" type="button" id="newPurchaseButton">Nova compra</button>
+      </section>
+    </main>
+
+    <nav aria-label="Navegação principal">
+      <button class="nav-button active" type="button" data-route="inicio"><span>⌂</span>Início</button>
+      <button class="nav-button" type="button" data-route="escanear"><span>▦</span>Escanear</button>
+      <button class="nav-button" type="button" data-route="carrinho"><span>▣</span>Carrinho <b class="badge" id="cartBadge" hidden>0</b></button>
+      <button class="nav-button" type="button" data-route="pesquisa"><span>⌕</span>Buscar</button>
+      <button class="nav-button" type="button" data-route="ofertas"><span>◎</span>Ofertas</button>
+    </nav>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><p id="toastMessage"></p></div>
+
+  <script src="ia-assistant.js"></script>
+  <script src="database.js"></script>
+  <script>
+    const state = { catalog: [], cart: [], customer: '', totalSavings: 0, cameraStream: null, barcodeDetector: null };
+    const routeNames = ['inicio', 'escanear', 'carrinho', 'ofertas', 'pesquisa', 'admin', 'pagamento', 'comprovante'];
+    const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    async function loadCatalog() {
+      try {
+        let response;
+        try {
+          response = await fetch('./api/products', { cache: 'no-store' });
+        } catch (error) {
+          response = null;
+        }
+        if (!response?.ok && location.hostname.endsWith('.github.io')) {
+          response = await fetch('./produtos.json', { cache: 'no-store' });
+        }
+        if (!response.ok) throw new Error('Catálogo indisponível');
+        state.catalog = await response.json();
+      } catch (error) {
+        console.warn(error);
+        showToast('Modo offline', 'Não foi possível atualizar o catálogo.');
+        state.catalog = await db.getProduct('7891000000101').catch(() => null) ? await queryCatalog() : [];
+      }
+      AssistenteIA.inicializar(state.catalog);
+      await db.saveProducts(state.catalog).catch(console.error);
+      renderOffers();
+    }
+
+    async function queryCatalog() {
+      const items = [];
+      for (const code of ['7891000000101','7891000000200','7891000000305','7891000000402','7891000000509','7891000000606']) {
+        const item = await db.getProduct(code);
+        if (item) items.push(item);
+      }
+      return items;
+    }
+
+    function route(name) {
+      if (!routeNames.includes(name)) return;
+      document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+      document.querySelectorAll('[data-route].nav-button').forEach(button => button.classList.toggle('active', button.dataset.route === name));
+      if (name === 'carrinho') renderCart();
+      if (name === 'ofertas') renderOffers();
+      if (name === 'pesquisa') renderSearch(document.querySelector('#catalogSearch').value);
+      if (name === 'admin') renderAdmin();
+      window.history.replaceState(null, '', `#${name}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function startShopping() {
+      const identifier = document.querySelector('#clientIdentifier').value.replace(/\D/g, '');
+      if (identifier.length < 8) return showToast('Identificação necessária', 'Informe pelo menos 8 números.');
+      state.customer = identifier;
+      route('escanear');
+      showToast('Pronto para comprar', 'Use o botão Ler código para testar um produto.');
+    }
+
+    function scanProduct() {
+      if (!state.catalog.length) return showToast('Catálogo vazio', 'Atualize o app para carregar os produtos.');
+      const product = state.catalog[Math.floor(Math.random() * state.catalog.length)];
+      addToCart(product);
+    }
+
+    async function addToCart(product) {
+      const discount = AssistenteIA.gerarDescontoPorValidade(product);
+      const finalPrice = product.preco * (1 - (discount?.desconto || 0) / 100);
+      if ((product.estoque ?? 20) <= 0) return showToast('Sem estoque', 'Este produto acabou no saldo da loja.');
+      const item = { ...product, finalPrice, discount };
+      item.id = await db.addCartItem(item).catch(error => {
+        console.error(error);
+        return null;
+      });
+      state.cart.push(item);
+      state.totalSavings += product.preco - finalPrice;
+      product.estoque = (product.estoque ?? 20) - 1;
+      document.querySelector('#assistantSpeech').textContent = `${AssistenteIA.falaProdutoEscaneado(product, discount)} Saldo restante: ${product.estoque}.`;
+      document.querySelector('#cartBadge').textContent = state.cart.length;
+      document.querySelector('#cartBadge').hidden = false;
+      renderRecommendations(product);
+      if (discount) showToast(`${discount.desconto}% de desconto`, `${product.nome}: ${discount.mensagem}`);
+      else showToast('Produto adicionado', product.nome);
+    }
+
+    function renderRecommendations(product) {
+      const recommendations = AssistenteIA.recomendarComplementos(product);
+      const panel = document.querySelector('#recommendations');
+      const list = document.querySelector('#recommendationList');
+      panel.hidden = recommendations.length === 0;
+      list.innerHTML = recommendations.map(item => `
+        <div class="product"><div class="product-emoji">${item.imagem}</div><div><div class="product-name">${item.nome}</div><div class="product-meta">${money(item.preco)}</div></div>
+        <button class="button compact-button" type="button" data-add-code="${item.codigo}" aria-label="Adicionar ${item.nome}">Adicionar</button></div>`).join('');
+    }
+
+    function renderCart() {
+      const panel = document.querySelector('#cartPanel');
+      if (!state.cart.length) {
+        panel.innerHTML = '<div class="empty">Seu carrinho está vazio.<br>Use o leitor para adicionar produtos.</div>';
+      } else {
+        panel.innerHTML = state.cart.map((item, index) => `
+          <div class="product"><div class="product-emoji">${item.imagem}</div><div><div class="product-name">${item.nome}</div>
+          ${item.discount ? `<div class="old-price">${money(item.preco)}</div>` : ''}<div class="product-meta">${item.discount ? `${item.discount.desconto}% OFF · vence em ${item.discount.diasRestantes} dias` : item.categoria}</div></div>
+          <div><div class="price">${money(item.finalPrice)}</div><button class="remove" type="button" data-remove="${index}" aria-label="Remover ${item.nome}">×</button></div></div>`).join('');
+      }
+      const total = state.cart.reduce((sum, item) => sum + item.finalPrice, 0);
+      document.querySelector('#cartTotal').textContent = money(total);
+      document.querySelector('#cartSavings').textContent = `Economia ${money(state.totalSavings)}`;
+    }
+
+    async function removeCartItem(index) {
+      const item = state.cart[index];
+      if (!item) return;
+      await db.removeCartItem(item.id);
+      state.cart.splice(index, 1);
+      const catalogItem = state.catalog.find(product => product.codigo === item.codigo);
+      if (catalogItem) catalogItem.estoque = (catalogItem.estoque ?? 0) + 1;
+      state.totalSavings -= item.preco - item.finalPrice;
+      document.querySelector('#cartBadge').textContent = state.cart.length;
+      document.querySelector('#cartBadge').hidden = state.cart.length === 0;
+      renderCart();
+    }
+
+    function renderOffers() {
+      const analysis = AssistenteIA.analisarCarrinho();
+      document.querySelector('#offersSummary').textContent = `${analysis.ofertas.length} produtos podem gerar até ${money(Number(analysis.totalEconomia))} de economia por unidade.`;
+      const list = document.querySelector('#offersList');
+      if (!analysis.ofertas.length) {
+        list.innerHTML = '<div class="panel empty">Nenhuma oferta disponível no momento.</div>';
+        return;
+      }
+      list.innerHTML = analysis.ofertas.map(item => `
+        <div class="panel offer ${item.tipo}"><div class="offer-top"><div style="font-size:26px">${item.imagem}</div><div><div class="offer-name">${item.nome}</div><div class="offer-expiry">Vence em ${item.diasRestantes} dia(s)</div></div>
+        <div style="text-align:right"><div class="old-price">${money(item.preco)}</div><div class="discount">-${item.desconto}%</div><div class="price">${money(item.preco * (1-item.desconto/100))}</div></div></div>
+        <button class="button warn" type="button" data-offer-code="${item.codigo}">Adicionar ao carrinho</button></div>`).join('');
+    }
+
+    async function finishPayment(method) {
+      if (!state.cart.length) return showToast('Carrinho vazio', 'Adicione ao menos um produto.');
+      const button = document.querySelector(`[data-payment="${method}"]`);
+      if (button?.disabled) return;
+      document.querySelectorAll('[data-payment]').forEach(item => item.disabled = true);
+      try {
+        const total = state.cart.reduce((sum, item) => sum + item.finalPrice, 0);
+        const points = Math.floor(total);
+        const now = new Date();
+        const code = crypto.randomUUID().split('-')[0].toUpperCase();
+        const sale = {
+          id: code, customer: state.customer, method,
+          items: state.cart.map(item => ({
+            codigo: item.codigo,
+            quantity: 1,
+            discountPercent: item.discount?.desconto || 0
+          }))
+        };
+        let result;
+        try {
+          const response = await fetch('./api/sales', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sale)
+          });
+          result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Venda não confirmada');
+        } catch (error) {
+          if (location.hostname.endsWith('.github.io')) {
+            result = { total, savings: state.totalSavings, points, customer: { points } };
+          } else throw error;
+        }
+        await db.saveSale({
+          ...sale, createdAt: now.toISOString(), items: state.cart,
+          subtotal: result.total, savings: result.savings, total: result.total, points: result.points
+        });
+        await db.clearCart();
+        state.cart = [];
+        state.totalSavings = 0;
+        document.querySelector('#cartBadge').hidden = true;
+        document.querySelector('#exitCode').textContent = code;
+        document.querySelector('#receiptDetails').innerHTML = `Cliente ${state.customer.slice(0, 3)}***<br>${method} · ${money(result.total)}<br>${result.points} pontos fidelidade · saldo ${result.customer.points}<br>${now.toLocaleString('pt-BR')}`;
+        route('comprovante');
+        showToast('Venda registrada', `${points} pontos adicionados ao cliente.`);
+      } catch (error) {
+        console.error(error);
+        showToast('Não foi possível finalizar', 'Revise os dados e tente novamente.');
+      } finally {
+        document.querySelectorAll('[data-payment]').forEach(item => item.disabled = false);
+      }
+    }
+
+    async function resetPurchase() {
+      state.cart = [];
+      state.totalSavings = 0;
+      state.customer = '';
+      document.querySelector('#clientIdentifier').value = '';
+      document.querySelector('#cartBadge').hidden = true;
+      document.querySelector('#assistantSpeech').textContent = 'Posicione o código no leitor. Vou informar o preço, a validade e as melhores ofertas.';
+      await db.clearCart().catch(console.error);
+      route('inicio');
+    }
+
+    let toastTimer;
+    function showToast(title, message) {
+      clearTimeout(toastTimer);
+      document.querySelector('#toastTitle').textContent = title;
+      document.querySelector('#toastMessage').textContent = message;
+      document.querySelector('#toast').classList.add('show');
+      toastTimer = setTimeout(() => document.querySelector('#toast').classList.remove('show'), 3400);
+    }
+
+    document.addEventListener('change', event => saveCatalogEdit(event));
+    document.addEventListener('click', event => {
+      const routeButton = event.target.closest('[data-route]');
+      if (routeButton) route(routeButton.dataset.route);
+      const paymentButton = event.target.closest('[data-payment]');
+      if (paymentButton) finishPayment(paymentButton.dataset.payment);
+      const removeButton = event.target.closest('[data-remove]');
+      if (removeButton) removeCartItem(Number(removeButton.dataset.remove));
+      const addButton = event.target.closest('[data-add-code]');
+      if (addButton) addToCart(state.catalog.find(item => item.codigo === addButton.dataset.addCode));
+      const offerButton = event.target.closest('[data-offer-code]');
+      if (offerButton) addToCart(state.catalog.find(item => item.codigo === offerButton.dataset.offerCode));
+    });
+    document.querySelector('#startButton').addEventListener('click', startShopping);
+    document.querySelector('#cameraButton').addEventListener('click', openCamera);
+    document.querySelector('#manualScanButton').addEventListener('click', () => {
+      document.querySelector('#manualScan').hidden = false;
+      document.querySelector('#manualCode').focus();
+    });
+    document.querySelector('#findCodeButton').addEventListener('click', findManualCode);
+    document.querySelector('#manualCode').addEventListener('keydown', event => { if (event.key === 'Enter') findManualCode(); });
+    document.querySelector('#newPurchaseButton').addEventListener('click', resetPurchase);
+    document.querySelector('#adminButton').addEventListener('click', () => route('admin'));
+    document.querySelector('#catalogSearch').addEventListener('input', event => renderSearch(event.target.value));
+    document.querySelector('#exportButton').addEventListener('click', exportBackup);
+    document.querySelector('#clientIdentifier').addEventListener('keydown', event => { if (event.key === 'Enter') startShopping(); });
+
+    async function restoreCart() {
+      const stored = await db.listCart();
+      state.cart = stored;
+      state.totalSavings = state.cart.reduce((sum, item) => sum + item.preco - item.finalPrice, 0);
+      if (stored.length) {
+        document.querySelector('#cartBadge').textContent = stored.length;
+        document.querySelector('#cartBadge').hidden = false;
+      }
+    }
+
+    async function openCamera() {
+      if (!('BarcodeDetector' in window)) {
+        document.querySelector('#manualScan').hidden = false;
+        return showToast('Câmera direta indisponível', 'Use a entrada manual ou abra em Chrome atualizado.');
+      }
+      try {
+        state.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        state.barcodeDetector = state.barcodeDetector || new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+        const video = document.querySelector('#cameraPreview');
+        video.srcObject = state.cameraStream;
+        video.hidden = false;
+        document.querySelector('#scanFrame').hidden = false;
+        await video.play();
+        detectBarcode(video);
+      } catch (error) {
+        console.error(error);
+        showToast('Câmera não iniciada', 'Confira a câmera e a permissão do navegador.');
+      }
+    }
+
+    async function detectBarcode(video) {
+      if (!state.cameraStream?.active) return;
+      try {
+        const codes = await state.barcodeDetector.detect(video);
+        const code = codes[0]?.rawValue;
+        if (code) {
+          stopCamera();
+          findCatalogCode(code);
+          return;
+        }
+      } catch (error) { console.warn(error); }
+      requestAnimationFrame(() => detectBarcode(video));
+    }
+
+    function stopCamera() {
+      state.cameraStream?.getTracks().forEach(track => track.stop());
+      state.cameraStream = null;
+      document.querySelector('#cameraPreview').hidden = true;
+    }
+
+    function findManualCode() {
+      const code = document.querySelector('#manualCode').value.trim();
+      if (!code) return showToast('Informe o código', 'Digite ou escaneie o código de barras.');
+      findCatalogCode(code);
+    }
+
+    function findCatalogCode(code) {
+      const product = state.catalog.find(item => item.codigo === code);
+      if (!product) return showToast('Produto não encontrado', `Nenhum item cadastrado para ${code}.`);
+      addToCart(product);
+    }
+
+    function renderSearch(query = '') {
+      const normalized = query.trim().toLowerCase();
+      const matches = state.catalog.filter(item => `${item.nome} ${item.codigo} ${item.categoria}`.toLowerCase().includes(normalized)).slice(0, 12);
+      document.querySelector('#searchResults').innerHTML = matches.length ? matches.map(item => `
+        <div class="product"><div class="product-emoji">${item.imagem}</div><div><div class="product-name">${item.nome}</div><div class="product-meta">${item.categoria} · ${item.codigo}</div><div class="stock ${(item.estoque ?? 20) <= 3 ? 'low' : ''}">Saldo: ${item.estoque ?? 20}</div></div>
+        <div><div class="price">${money(item.preco)}</div><button class="button compact-button" type="button" data-add-code="${item.codigo}" ${(item.estoque ?? 20) <= 0 ? 'disabled' : ''}>${(item.estoque ?? 20) <= 0 ? 'Sem saldo' : 'Adicionar'}</button></div></div>`).join('') : '<div class="empty">Nenhum produto encontrado.</div>';
+    }
+
+    async function renderAdmin() {
+      const sales = await db.listSales();
+      const revenue = sales.reduce((sum, sale) => sum + sale.total, 0);
+      const expiring = state.catalog.filter(item => AssistenteIA.gerarDescontoPorValidade(item)).length;
+      document.querySelector('#adminMetrics').innerHTML = `<div class="metric"><strong>${sales.length}</strong><span>VENDAS</span></div><div class="metric"><strong>${money(revenue)}</strong><span>FATURAMENTO</span></div><div class="metric"><strong>${expiring}</strong><span>COM ALERTA</span></div>`;
+      document.querySelector('#adminProducts').innerHTML = state.catalog.map(item => `
+        <div class="product"><div class="product-emoji">${item.imagem}</div><div><div class="product-name">${item.nome}</div><div class="product-meta">Validade ${new Date(`${item.dataValidade}T00:00:00`).toLocaleDateString('pt-BR')} · saldo ${item.estoque ?? 20}</div></div>
+        <div class="product-edit"><input type="date" value="${item.dataValidade}" aria-label="Validade de ${item.nome}" data-expiry-code="${item.codigo}"><input type="number" min="0" step="0.01" value="${item.preco}" aria-label="Preço de ${item.nome}" data-price-code="${item.codigo}"></div></div>`).join('');
+    }
+
+    async function saveCatalogEdit(event) {
+      const code = event.target.dataset.expiryCode || event.target.dataset.priceCode;
+      if (!code) return;
+      const item = state.catalog.find(product => product.codigo === code);
+      if (event.target.dataset.expiryCode) item.dataValidade = event.target.value;
+      if (event.target.dataset.priceCode) item.preco = Number(event.target.value);
+      await db.saveProducts(state.catalog);
+      AssistenteIA.inicializar(state.catalog);
+      renderOffers();
+      showToast('Cadastro atualizado', item.nome);
+    }
+
+    async function exportBackup() {
+      const data = await db.exportDatabase();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `campelo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    window.addEventListener('load', async () => {
+      await loadCatalog();
+      await restoreCart();
+      route(location.hash.slice(1) || 'inicio');
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
+    });
+  </script>
+</body>
+</html>
