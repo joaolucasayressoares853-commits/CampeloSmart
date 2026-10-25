@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campelo-smart-v5-professional-photo-shopping';
+const CACHE_NAME = 'campelo-smart-v5.1-network-first';
 const APP_ASSETS = ['./', './index.html', './download.html', './manifest.json', './scanner.js', './ia-assistant.js', './database.js', './produtos.json', './icons/icon-192.svg', './icons/icon-512.svg'];
 
 self.addEventListener('install', event => {
@@ -17,6 +17,16 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        const copy = response.clone();
+        event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
+        return response;
+      }).catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
+    );
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then(cached => {
       const network = fetch(event.request).then(response => {
