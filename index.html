@@ -13,7 +13,7 @@
       --green: #008c45; --green-dark: #006738; --blue: #005ea6;
       --orange: #d97706; --red: #dc2626; --ink: #17211b;
       --muted: #68756e; --line: #dde5df; --paper: #fff;
-      --surface: #f3f6f4; --shadow: 0 8px 24px rgba(23,33,27,.08);
+      --surface: #f3f6f4; --shadow: 0 10px 30px rgba(23,33,27,.10); --gold: #f4c64f;
     }
     * { box-sizing: border-box; }
     html { background: var(--surface); }
@@ -21,7 +21,7 @@
     button, input { font: inherit; }
     button { cursor: pointer; }
     .app { max-width: 520px; min-height: 100dvh; margin: 0 auto; background: var(--surface); }
-    .topbar { position: sticky; top: 0; z-index: 20; color: #fff; background: var(--green); border-bottom: 4px solid #f2c94c; }
+    .topbar { position: sticky; top: 0; z-index: 20; color: #fff; background: linear-gradient(120deg, #006738, #008c45 72%, #00a85a); border-bottom: 4px solid var(--gold); }
     .topbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 12px 18px; }
     .brand { display: flex; align-items: center; gap: 10px; }
     .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; background: #fff; color: var(--green); border-radius: 8px; font-size: 23px; }
@@ -29,7 +29,7 @@
     h1 { margin-bottom: 0; font-size: 21px; letter-spacing: 0; }
     .tagline { margin: 2px 0 0; font-family: "Trebuchet MS", sans-serif; font-size: 11px; opacity: .85; }
     .icon-button { width: 40px; height: 40px; padding: 0; border: 1px solid rgba(255,255,255,.35); border-radius: 8px; background: transparent; color: #fff; font-size: 22px; }
-    main { padding: 18px 16px 96px; }
+    main { width: 100%; padding: 18px 16px calc(96px + env(safe-area-inset-bottom)); }
     .view { display: none; animation: enter .22s ease-out; }
     .view.active { display: block; }
     @keyframes enter { from { opacity: 0; transform: translateY(8px); } }
@@ -37,14 +37,14 @@
     .title-row { display: flex; justify-content: space-between; align-items: end; margin: 4px 0 16px; }
     .title-row h2 { margin: 4px 0 0; font-size: 27px; }
     .panel { margin-bottom: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); }
-    .welcome { padding: 26px 22px; text-align: center; }
+    .welcome { padding: 26px 22px; overflow: hidden; text-align: center; background: radial-gradient(circle at 85% 15%, #edf8f1 0 58px, transparent 59px), #fff; }
     .welcome-icon { font-size: 54px; }
     .welcome h2 { margin: 10px 0 8px; font-size: 28px; }
     .welcome p { color: var(--muted); line-height: 1.55; }
     label { display: block; margin-bottom: 7px; font: 700 13px "Trebuchet MS", sans-serif; }
     input { width: 100%; min-height: 48px; margin-bottom: 12px; padding: 12px 14px; border: 1px solid #bac6bf; border-radius: 6px; background: #fff; color: var(--ink); }
     input:focus { outline: 3px solid rgba(0,140,69,.16); border-color: var(--green); }
-    .button { width: 100%; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 6px; background: var(--green); color: #fff; font: 700 15px "Trebuchet MS", sans-serif; }
+    .button { width: 100%; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 6px; background: var(--green); color: #fff; font: 700 15px "Trebuchet MS", sans-serif; box-shadow: 0 5px 14px rgba(0,140,69,.18); }
     .button.secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
     .button.warn { background: var(--orange); }
     .button:active { transform: translateY(1px); }
@@ -56,9 +56,9 @@
     .assistant::before { content: "✦"; position: absolute; left: 15px; top: 13px; color: var(--green); font-size: 21px; }
     .assistant strong { display: block; margin-bottom: 4px; font: 700 13px "Trebuchet MS", sans-serif; }
     .assistant p { margin: 0; color: #405249; font-size: 14px; line-height: 1.45; }
-    .scanner { height: 280px; display: grid; place-items: center; margin-bottom: 12px; overflow: hidden; border-radius: 8px; background: #202621; }
+    .scanner { position: relative; height: min(320px, 46dvh); min-height: 240px; display: grid; place-items: center; margin-bottom: 12px; overflow: hidden; border: 1px solid #2d4235; border-radius: 8px; background: radial-gradient(circle at center, #37433b 0 4px, #202621 5px 100%); }
     .scanner video { width: 100%; height: 100%; object-fit: cover; }
-    .scan-frame { width: 72%; height: 58%; position: absolute; border: 2px solid #fff; }
+    .scan-frame { width: 76%; height: 58%; position: absolute; z-index: 2; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(10,16,12,.18); pointer-events: none; }
     .scan-frame::before { content: ""; position: absolute; left: 0; right: 0; top: 46%; height: 2px; background: #f2c94c; box-shadow: 0 0 12px #f2c94c; }
     .scan-frame span { position: absolute; left: 0; right: 0; bottom: -28px; color: #fff; text-align: center; font: 12px "Trebuchet MS", sans-serif; }
     .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -105,12 +105,12 @@
     .receipt-check { width: 72px; height: 72px; display: grid; place-items: center; margin: 4px auto 12px; border-radius: 50%; background: #e8f6ed; color: var(--green); font-size: 42px; }
     .receipt-code { margin: 18px 0; padding: 22px 10px; border: 2px dashed #88a394; border-radius: 8px; color: var(--green-dark); font: 700 34px monospace; letter-spacing: 5px; }
     .receipt-details { color: var(--muted); font: 13px/1.7 "Trebuchet MS", sans-serif; }
-    nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(520px, 100%); transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); min-height: 72px; border-top: 1px solid var(--line); background: rgba(255,255,255,.97); box-shadow: 0 -6px 18px rgba(23,33,27,.07); }
-    .nav-button { position: relative; border: 0; background: none; color: #738077; font: 700 11px "Trebuchet MS", sans-serif; }
+    nav { position: fixed; z-index: 30; left: 50%; bottom: 0; width: min(520px, 100%); transform: translateX(-50%); display: grid; grid-template-columns: repeat(5, 1fr); min-height: calc(72px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: rgba(255,255,255,.98); box-shadow: 0 -8px 24px rgba(23,33,27,.11); }
+    .nav-button { position: relative; min-width: 0; border: 0; background: none; color: #738077; font: 700 11px "Trebuchet MS", sans-serif; }
     .nav-button span { display: block; margin-bottom: 3px; font-size: 21px; }
     .nav-button.active { color: var(--green); }
     .badge { position: absolute; top: 7px; left: 60%; min-width: 18px; height: 18px; padding: 2px 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10px; }
-    .toast { position: fixed; z-index: 50; top: 86px; left: 50%; width: min(430px, calc(100% - 32px)); transform: translate(-50%, -120px); padding: 13px 16px; border-left: 4px solid var(--green); border-radius: 6px; background: #fff; box-shadow: 0 12px 36px rgba(23,33,27,.22); opacity: 0; transition: .25s ease; }
+    .toast { position: fixed; z-index: 50; top: 86px; left: 50%; width: min(430px, calc(100% - 32px)); transform: translate(-50%, -120px); padding: 13px 16px; border-left: 4px solid var(--green); border-radius: 6px; background: #fff; box-shadow: 0 12px 36px rgba(23,33,27,.22); opacity: 0; pointer-events: none; transition: .25s ease; }
     .toast.show { transform: translate(-50%, 0); opacity: 1; }
     .toast strong { display: block; margin-bottom: 2px; font: 700 13px "Trebuchet MS", sans-serif; }
     .toast p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -145,12 +145,20 @@
       </section>
 
       <section id="view-escanear" class="view">
+        <div class="title-row"><div><span class="eyebrow">Compra ativa</span><h2>Escaneie seus itens</h2></div></div>
+        <div class="scan-summary"><div class="metric"><strong id="scanCartCount">0</strong><span>ITENS</span></div><div class="metric"><strong id="scanCartTotal">R$ 0,00</strong><span>TOTAL</span></div><div class="metric"><strong id="scanOfferCount">0</strong><span>OFERTAS</span></div></div>
+        <div class="quick-actions">
+          <button class="quick-action" type="button" data-route="pesquisa"><span>⌕</span><strong>Pesquisar</strong></button>
+          <button class="quick-action" type="button" id="quickPhotoButton"><span>◉</span><strong>Tirar foto</strong></button>
+          <button class="quick-action" type="button" data-route="ofertas"><span>◎</span><strong>Ofertas</strong></button>
+        </div>
         <div class="assistant"><strong>Assistente Campelo</strong><p id="assistantSpeech">Posicione o código no leitor. Vou informar o preço, a validade e as melhores ofertas.</p></div>
         <div class="scanner" aria-label="Área do leitor de código de barras"><video id="cameraPreview" muted playsinline hidden></video><canvas id="cameraCanvas" hidden></canvas><div class="scan-frame" id="scanFrame"><span>Área de leitura</span></div></div>
-        <div class="action-row"><button class="button" id="cameraButton" type="button">Abrir câmera</button><button class="button secondary" id="capturePhotoButton" type="button">Tirar foto</button></div>
-        <div class="action-row" style="margin-top:10px"><button class="button secondary" id="manualScanButton" type="button">Digitar código</button><label class="button secondary" for="photoInput" style="text-align:center;display:grid;place-items:center">Escolher foto</label></div>
-        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
-        <div class="panel" id="manualScan" hidden><label for="manualCode">Código de barras</label><div class="search-row"><input id="manualCode" inputmode="numeric" autocomplete="off" placeholder="Ex.: 7891000000101"><button class="button" id="findCodeButton" type="button">Buscar</button></div></div>
+        <div class="action-row"><button class="button" id="cameraButton" type="button">Abrir câmera</button><button class="button secondary" id="capturePhotoButton" type="button" aria-controls="photoInput">Tirar foto</button></div>
+        <div class="action-row" style="margin-top:10px"><button class="button secondary" id="manualScanButton" type="button">Digitar código</button><button class="button secondary" id="choosePhotoButton" type="button">Escolher foto</button></div>
+        <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+        <p id="photoStatus" class="photo-status" aria-live="polite">A câmera abre a foto ou use uma imagem da galeria.</p>
+        <div class="panel" id="manualScan" hidden><label for="manualCode">Código de barras</label><div class="search-row"><input id="manualCode" inputmode="numeric" autocomplete="off" placeholder="Ex.: 7891000000106"><button class="button" id="findCodeButton" type="button">Buscar</button></div></div>
         <div class="panel" id="recommendations" hidden><span class="eyebrow">Sugestões</span><h3 style="margin-top:5px">Para acompanhar</h3><div id="recommendationList"></div></div>
       </section>
 
@@ -220,29 +228,34 @@
     async function loadCatalog() {
       try {
         let response;
-        try {
-          response = await fetch('./api/products', { cache: 'no-store' });
-        } catch (error) {
-          response = null;
-        }
-        if (!response?.ok && location.hostname.endsWith('.github.io')) {
+        if (location.hostname.endsWith('.github.io')) {
           response = await fetch('./produtos.json', { cache: 'no-store' });
+        } else {
+          try { response = await fetch('./api/products', { cache: 'no-store' }); }
+          catch (error) { response = null; }
         }
-        if (!response.ok) throw new Error('Catálogo indisponível');
+        if (!response?.ok) throw new Error('Catálogo indisponível');
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('json')) throw new Error('API estática sem JSON');
         state.catalog = await response.json();
       } catch (error) {
         console.warn(error);
-        showToast('Modo offline', 'Não foi possível atualizar o catálogo.');
-        state.catalog = await db.getProduct('7891000000101').catch(() => null) ? await queryCatalog() : [];
+        showToast('Modo offline', 'Usando catálogo local.');
+        try {
+          state.catalog = await fetch('./produtos.json', { cache: 'no-store' }).then(response => response.json());
+        } catch (fallbackError) {
+          console.error(fallbackError);
+          state.catalog = await queryCatalog().catch(() => []);
+        }
       }
       AssistenteIA.inicializar(state.catalog);
-      await db.saveProducts(state.catalog).catch(console.error);
       renderOffers();
+      db.saveProducts(state.catalog).catch(error => console.warn('Catálogo não persistido:', error));
     }
 
     async function queryCatalog() {
       const items = [];
-      for (const code of ['7891000000101','7891000000200','7891000000305','7891000000402','7891000000509','7891000000606']) {
+      for (const code of ['7891000000106','7891000000205','7891000000304','7891000000403','7891000000502','7891000000601']) {
         const item = await db.getProduct(code);
         if (item) items.push(item);
       }
@@ -258,6 +271,7 @@
       if (name === 'ofertas') renderOffers();
       if (name === 'pesquisa') renderSearch(document.querySelector('#catalogSearch').value);
       if (name === 'admin') renderAdmin();
+      if (name === 'escanear') updateScanSummary();
       window.history.replaceState(null, '', `#${name}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -268,6 +282,7 @@
       state.customer = identifier;
       loadCustomerAccount();
       route('escanear');
+      requestAnimationFrame(() => document.querySelector('#capturePhotoButton').focus());
       showToast('Pronto para comprar', 'Use o botão Ler código para testar um produto.');
     }
 
@@ -288,6 +303,7 @@
       });
       state.cart.push(item);
       state.totalSavings += product.preco - finalPrice;
+      updateScanSummary();
       product.estoque = (product.estoque ?? 20) - 1;
       document.querySelector('#assistantSpeech').textContent = `${AssistenteIA.falaProdutoEscaneado(product, discount)} Saldo restante: ${product.estoque}.`;
       document.querySelector('#cartBadge').textContent = state.cart.length;
@@ -330,9 +346,20 @@
       const catalogItem = state.catalog.find(product => product.codigo === item.codigo);
       if (catalogItem) catalogItem.estoque = (catalogItem.estoque ?? 0) + 1;
       state.totalSavings -= item.preco - item.finalPrice;
+      updateScanSummary();
       document.querySelector('#cartBadge').textContent = state.cart.length;
       document.querySelector('#cartBadge').hidden = state.cart.length === 0;
       renderCart();
+    }
+
+    function updateScanSummary() {
+      const total = state.cart.reduce((sum, item) => sum + item.finalPrice, 0);
+      const count = document.querySelector('#scanCartCount');
+      const totalElement = document.querySelector('#scanCartTotal');
+      const offerCount = document.querySelector('#scanOfferCount');
+      if (count) count.textContent = state.cart.length;
+      if (totalElement) totalElement.textContent = money(total);
+      if (offerCount) offerCount.textContent = state.catalog.filter(item => AssistenteIA.gerarDescontoPorValidade(item)).length;
     }
 
     function renderOffers() {
@@ -457,8 +484,24 @@
       if (state.cameraStream) stopCamera();
       else openCamera();
     });
-    document.querySelector('#capturePhotoButton').addEventListener('click', () => document.querySelector('#photoInput').click());
-    document.querySelector('#photoInput').addEventListener('change', event => detectPhoto(event.target.files[0]));
+    function openPhotoPicker(capture) {
+      const input = document.querySelector('#photoInput');
+      if (capture) input.setAttribute('capture', 'environment');
+      else input.removeAttribute('capture');
+      input.value = '';
+      document.querySelector('#photoStatus').textContent = capture ? 'Abrindo a câmera para fotografar o código...' : 'Escolhendo uma foto da galeria...';
+      if (typeof input.showPicker === 'function') input.showPicker();
+      else input.click();
+    }
+    document.querySelector('#capturePhotoButton').addEventListener('click', () => openPhotoPicker(true));
+    document.querySelector('#quickPhotoButton').addEventListener('click', () => openPhotoPicker(true));
+    document.querySelector('#choosePhotoButton').addEventListener('click', () => openPhotoPicker(false));
+    document.querySelector('#photoInput').addEventListener('change', event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      document.querySelector('#photoStatus').textContent = `Foto carregada: ${file.name}`;
+      detectPhoto(file);
+    });
     document.querySelector('#manualScanButton').addEventListener('click', () => {
       document.querySelector('#manualScan').hidden = false;
       document.querySelector('#manualCode').focus();
@@ -475,6 +518,7 @@
       const stored = await db.listCart();
       state.cart = stored;
       state.totalSavings = state.cart.reduce((sum, item) => sum + item.preco - item.finalPrice, 0);
+      updateScanSummary();
       if (stored.length) {
         document.querySelector('#cartBadge').textContent = stored.length;
         document.querySelector('#cartBadge').hidden = false;
@@ -544,6 +588,11 @@
 
     async function detectPhoto(file) {
       if (!file) return;
+      if (!state.catalog.length) {
+        showToast('Preparando catálogo', 'Aguarde um instante e envie a foto novamente.');
+        await loadCatalog();
+        if (!state.catalog.length) return;
+      }
       showToast('Analisando foto', 'Ampliação, contraste e orientação sendo ajustados...');
       let code = '';
       try {
