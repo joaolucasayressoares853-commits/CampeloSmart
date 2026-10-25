@@ -209,6 +209,7 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><p id="toastMessage"></p></div>
 
+  <script src="scanner.js"></script>
   <script src="ia-assistant.js"></script>
   <script src="database.js"></script>
   <script>
@@ -543,25 +544,30 @@
 
     async function detectPhoto(file) {
       if (!file) return;
-      if (!('BarcodeDetector' in window)) {
-        showToast('Foto recebida', 'Digite o código visível caso o navegador não consiga ler a imagem.');
+      showToast('Analisando foto', 'Ampliação, contraste e orientação sendo ajustados...');
+      let code = '';
+      try {
+        code = await CampeloScanner.decodeImage(file);
+      } catch (primaryError) {
+        console.warn('ZXing não decodificou:', primaryError);
+        if ('BarcodeDetector' in window) {
+          try {
+            const bitmap = await createImageBitmap(file);
+            const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+            const codes = await detector.detect(bitmap);
+            bitmap.close();
+            code = codes[0]?.rawValue || '';
+          } catch (nativeError) { console.warn('Detector nativo também falhou:', nativeError); }
+        }
+      }
+      const normalized = String(code).replace(/\D/g, '').slice(0, 13);
+      if (normalized.length !== 8 && normalized.length !== 12 && normalized.length !== 13) {
         document.querySelector('#manualScan').hidden = false;
         document.querySelector('#manualCode').focus();
+        showToast('Foto não legível', 'Aproxime o código, use luz uniforme e evite reflexo.');
         return;
       }
-      try {
-        const bitmap = await createImageBitmap(file);
-        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-        const codes = await detector.detect(bitmap);
-        bitmap.close();
-        if (!codes.length) throw new Error('Código não encontrado');
-        findCatalogCode(codes[0].rawValue);
-      } catch (error) {
-        console.error(error);
-        document.querySelector('#manualScan').hidden = false;
-        document.querySelector('#manualCode').focus();
-        showToast('Código não identificado', 'Digite o código que aparece abaixo da barra.');
-      }
+      findCatalogCode(normalized);
     }
 
     function findManualCode() {

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'campelo-smart-v3-camera-payments-cpf';
-const APP_ASSETS = ['./', './index.html', './download.html', './manifest.json', './ia-assistant.js', './database.js', './produtos.json', './icons/icon-192.svg', './icons/icon-512.svg'];
+const CACHE_NAME = 'campelo-smart-v4-precise-photo-reader';
+const APP_ASSETS = ['./', './index.html', './download.html', './manifest.json', './scanner.js', './ia-assistant.js', './database.js', './produtos.json', './icons/icon-192.svg', './icons/icon-512.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_ASSETS)));
