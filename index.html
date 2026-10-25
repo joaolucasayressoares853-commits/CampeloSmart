@@ -4,10 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#008c45">
-  <meta name="description" content="Campelo Smart: compras rápidas, ofertas e validade inteligente.">
+  <meta name="description" content="Campelo Smart: compras rápidas, ofertas e validade inteligente com estoque centralizado.">
   <title>Campelo Smart</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <script>window.CAMPELO_API_URL = window.CAMPELO_API_URL || '';</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
     :root {
       --green: #008c45; --green-dark: #006738; --blue: #005ea6;
@@ -115,6 +118,58 @@
     .toast strong { display: block; margin-bottom: 2px; font: 700 13px "Trebuchet MS", sans-serif; }
     .toast p { margin: 0; color: var(--muted); font-size: 13px; }
     [hidden] { display: none !important; }
+
+    /* Operação visual Campelo */
+    .app { width: min(100%, 1120px); background: #eef3ef; }
+    .topbar { background: #fff; color: var(--ink); border: 0; box-shadow: 0 1px 0 var(--line); }
+    .topbar-inner { min-height: 76px; }
+    .brand-mark { background: var(--green); color: #fff; }
+    .tagline { color: var(--muted); }
+    main { min-height: calc(100dvh - 76px); }
+    .view.active { max-width: 1080px; margin: 0 auto; }
+    .panel { border-color: #dfe7e2; border-radius: 8px; box-shadow: 0 12px 32px rgba(28,58,40,.06); }
+    .welcome { position: relative; min-height: 420px; display: grid; align-content: center; padding: 54px 42px; text-align: left; background: linear-gradient(115deg, #fff 58%, #edf6ef 58%); }
+    .welcome::after { content: "🛒"; position: absolute; right: 10%; top: 44%; font-size: 92px; filter: drop-shadow(0 18px 18px rgba(0,108,56,.16)); }
+    .welcome h2 { max-width: 480px; font-size: 44px; line-height: 1.02; }
+    .welcome p { max-width: 520px; }
+    .features { grid-template-columns: repeat(3,1fr); }
+    .feature { min-height: 105px; border-radius: 8px; }
+    .assistant { border: 1px solid #cfe5d5; border-left-width: 5px; border-radius: 8px; }
+    .scanner { height: 430px; border-radius: 8px; }
+    .quick-actions { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .quick-action { min-height: 92px; }
+    .quick-action:focus-visible, .button:focus-visible, .nav-button:focus-visible { outline: 3px solid #f2c94c; outline-offset: 2px; }
+    .product { gap: 16px; }
+    nav { bottom: 12px; width: min(620px, calc(100% - 24px)); min-height: 68px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 18px 50px rgba(28,58,40,.16); }
+    .nav-button { border-radius: 7px; }
+    .nav-button.active { background: #edf8f1; }
+    .metric, .scan-summary .metric { background: #fbfcfb; }
+    .toast { top: 94px; }
+    #appVersion { bottom: 92px !important; }
+    @media (min-width: 760px) {
+      body { background: #dfe7e2; }
+      main { padding: 32px 36px 104px; }
+      .topbar-inner { padding-inline: 36px; }
+      .welcome { grid-template-columns: minmax(0,1fr) 260px; padding: 72px 64px; }
+      .welcome::after { right: 10%; top: 35%; font-size: 126px; }
+      .welcome label, .welcome input, .welcome .button { max-width: 430px; }
+      #view-escanear.active, #view-carrinho.active, #view-ofertas.active, #view-pesquisa.active { display: grid; grid-template-columns: minmax(340px,1.45fr) minmax(300px,.55fr); gap: 16px; align-items: start; }
+      #view-escanear.active .title-row, #view-escanear.active .scan-summary, #view-escanear.active .quick-actions, #view-escanear.active .assistant, #view-escanear.active .panel, #view-escanear.active #photoStatus, #view-carrinho.active .title-row, #view-carrinho.active #cartPanel, #view-carrinho.active .totals, #view-carrinho.active .button, #view-ofertas.active .title-row, #view-ofertas.active .assistant, #view-ofertas.active #offersList, #view-pesquisa.active .title-row, #view-pesquisa.active .panel { grid-column: 1; }
+      #view-escanear.active .scanner, #view-escanear.active .action-row { grid-column: 1; }
+      #view-escanear.active #recommendations { grid-column: 2; grid-row: 1 / span 8; }
+      #view-ofertas.active #offersList, #view-pesquisa.active .panel { grid-row: 2 / span 8; }
+      .features { gap: 14px; }
+      nav { bottom: 16px; }
+    }
+    @media (max-width: 759px) {
+      .welcome { min-height: 390px; display: block; padding: 38px 24px; background: linear-gradient(160deg, #fff 62%, #edf6ef 62%); }
+      .welcome::after { position: absolute; right: 18px; top: 18px; font-size: 60px; opacity: .85; }
+      .welcome h2 { max-width: 290px; font-size: 36px; }
+      .welcome p { max-width: 310px; }
+      .scanner { height: 300px; }
+      .quick-actions { gap: 6px; }
+      .quick-action { min-height: 82px; }
+    }
     @media (min-width: 700px) { body { padding: 18px 0; } .app { min-height: calc(100dvh - 36px); border: 1px solid var(--line); box-shadow: 0 18px 60px rgba(23,33,27,.14); } }
   </style>
 </head>
@@ -138,6 +193,7 @@
           <input id="clientIdentifier" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="Digite seu CPF ou telefone">
           <button class="button" id="startButton" type="button">Começar a comprar</button>
         </div>
+        <div class="panel" id="onlineStatus" style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin-top:14px"><span id="onlineStatusDot" style="width:10px;height:10px;border-radius:50%;background:#d97706"></span><span id="onlineStatusText" style="font:700 12px 'Trebuchet MS',sans-serif;color:var(--muted)">Verificando catálogo online...</span></div>
         <div class="features">
           <div class="feature"><span>30 s</span><strong>Sem filas</strong><span>Compra ágil</span></div>
           <div class="feature"><span>↓ 40%</span><strong>Validade</strong><span>Descontos reais</span></div>
@@ -185,7 +241,7 @@
         <div class="title-row"><div><span class="eyebrow">Operação local</span><h2>Painel da loja</h2></div></div>
         <div class="metrics" id="adminMetrics"></div>
         <div class="panel"><span class="eyebrow">Estoque e validade</span><div id="adminProducts"></div></div>
-        <div class="panel"><span class="eyebrow">Dados</span><button class="button secondary" type="button" id="exportButton">Exportar backup JSON</button></div>
+        <div class="panel"><span class="eyebrow">Sincronização de catálogo</span><p id="syncStatus" style="color:var(--muted);font-size:13px">Conectado ao banco central.</p><label for="catalogFile">Importar produtos JSON</label><input id="catalogFile" type="file" accept="application/json,.json" style="margin-bottom:8px"><button class="button secondary" type="button" id="syncCatalogButton">Sincronizar agora</button><button class="button secondary" type="button" id="exportButton" style="margin-top:8px">Exportar backup JSON</button></div>
       </section>
 
       <section id="view-pagamento" class="view">
@@ -223,6 +279,8 @@
   <script src="database.js"></script>
   <script>
     const state = { catalog: [], cart: [], customer: '', totalSavings: 0, cameraStream: null, barcodeDetector: null, scanningFrame: 0 };
+    const API_URL = (window.CAMPELO_API_URL || '').replace(/\/$/, '');
+    const apiPath = path => `${API_URL}${path}`;
     const routeNames = ['inicio', 'escanear', 'carrinho', 'ofertas', 'pesquisa', 'admin', 'pagamento', 'comprovante'];
     const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -232,7 +290,7 @@
         if (location.hostname.endsWith('.github.io')) {
           response = await fetch('./produtos.json', { cache: 'no-store' });
         } else {
-          try { response = await fetch('./api/products', { cache: 'no-store' }); }
+          try { response = await fetch(apiPath('/api/products'), { cache: 'no-store' }); }
           catch (error) { response = null; }
         }
         if (!response?.ok) throw new Error('Catálogo indisponível');
@@ -241,6 +299,8 @@
         state.catalog = await response.json();
       } catch (error) {
         console.warn(error);
+        document.querySelector('#onlineStatusDot').style.background = '#d97706';
+        document.querySelector('#onlineStatusText').textContent = 'Modo offline · catálogo salvo neste dispositivo';
         showToast('Modo offline', 'Usando catálogo local.');
         try {
           state.catalog = await fetch('./produtos.json', { cache: 'no-store' }).then(response => response.json());
@@ -249,6 +309,8 @@
           state.catalog = await queryCatalog().catch(() => []);
         }
       }
+      document.querySelector('#onlineStatusDot').style.background = '#008c45';
+      document.querySelector('#onlineStatusText').textContent = `Catálogo online · ${state.catalog.length} produtos disponíveis`;
       AssistenteIA.inicializar(state.catalog);
       renderOffers();
       db.saveProducts(state.catalog).catch(error => console.warn('Catálogo não persistido:', error));
@@ -397,7 +459,7 @@
         };
         let result;
         try {
-          const response = await fetch('./api/sales', {
+          const response = await fetch(apiPath('/api/sales'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sale)
           });
           result = await response.json();
@@ -409,7 +471,7 @@
         }
         if (!location.hostname.endsWith('.github.io')) {
           const cpf = state.customer;
-          const paymentResponse = await fetch('./api/payments/intents', {
+          const paymentResponse = await fetch(apiPath('/api/payments/intents'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ saleId: result.id, cpf, amount: result.total })
           });
@@ -513,6 +575,7 @@
     document.querySelector('#adminButton').addEventListener('click', () => route('admin'));
     document.querySelector('#catalogSearch').addEventListener('input', event => renderSearch(event.target.value));
     document.querySelector('#exportButton').addEventListener('click', exportBackup);
+    document.querySelector('#syncCatalogButton').addEventListener('click', syncCentralCatalog);
     document.querySelector('#clientIdentifier').addEventListener('keydown', event => { if (event.key === 'Enter') startShopping(); });
 
     async function restoreCart() {
@@ -662,6 +725,28 @@
       showToast('Cadastro atualizado', item.nome);
     }
 
+    async function syncCentralCatalog() {
+      const file = document.querySelector('#catalogFile').files[0];
+      if (!file) return showToast('Selecione o catálogo', 'Use um JSON com código, nome, preço e estoque.');
+      try {
+        const products = JSON.parse(await file.text());
+        if (!Array.isArray(products) || !products.length) throw new Error('Arquivo deve conter uma lista de produtos');
+        const token = prompt('Token administrativo:');
+        if (!token) return;
+        const response = await fetch(apiPath('/api/admin/catalog/sync'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+          body: JSON.stringify({ source: 'campelo-admin', products })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Sincronização recusada');
+        document.querySelector('#syncStatus').textContent = `${result.imported} produtos atualizados · ${result.deactivated} desativados · sincronizado agora.`;
+        showToast('Catálogo sincronizado', `${result.imported} produtos disponíveis online.`);
+        await loadCatalog();
+      } catch (error) {
+        showToast('Falha na sincronização', error.message);
+      }
+    }
+
     async function exportBackup() {
       const data = await db.exportDatabase();
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
@@ -679,6 +764,7 @@
     window.addEventListener('load', async () => {
       await loadCatalog();
       await restoreCart();
+      setInterval(() => loadCatalog(), 60000);
       route(location.hash.slice(1) || 'inicio');
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
     });
