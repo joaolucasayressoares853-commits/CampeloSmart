@@ -1,4 +1,4 @@
-const CACHE_NAME = 'campelo-smart-v2';
+const CACHE_NAME = 'campelo-smart-v3-camera-payments-cpf';
 const APP_ASSETS = ['./', './index.html', './download.html', './manifest.json', './ia-assistant.js', './database.js', './produtos.json', './icons/icon-192.svg', './icons/icon-512.svg'];
 
 self.addEventListener('install', event => {
