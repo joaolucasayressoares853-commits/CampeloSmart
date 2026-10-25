@@ -6,6 +6,7 @@ import pg from 'pg';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { normalizeCpf, hashCpf, verifyWebhookSignature } from './payments.js';
 
 const app = express();
 const pool = new pg.Pool({
@@ -14,9 +15,13 @@ const pool = new pg.Pool({
 });
 const port = Number(process.env.PORT || 4173);
 const adminToken = process.env.ADMIN_TOKEN || 'troque-esta-chave-em-producao';
+const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET || '';
+const paymentProviderUrl = process.env.PAYMENT_PROVIDER_URL || '';
+const paymentProviderToken = process.env.PAYMENT_PROVIDER_TOKEN || '';
 
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginOpenerPolicy: false }));
+app.use('/api/payments/webhook', express.raw({ type: 'application/json', limit: '128kb' }));
 app.use(express.json({ limit: '128kb' }));
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN ? process.env.ALLOWED_ORIGIN.split(',') : true }));
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-8', legacyHeaders: false }));
@@ -95,6 +100,87 @@ app.get('/api/products', async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.post('/api/payments/intents', async (req, res, next) => {
+  if (!paymentProviderUrl || !paymentProviderToken) {
+    return res.status(503).json({ error: 'Gateway de pagamento não configurado.' });
+  }
+  const client = await pool.connect();
+  try {
+    const cpf = normalizeCpf(req.body.cpf);
+    if (!cpf) return res.status(400).json({ error: 'CPF inválido.' });
+    const saleId = String(req.body.saleId || '');
+    if (!/^\w{8,16}$/.test(saleId)) return res.status(400).json({ error: 'Identificador da compra inválido.' });
+    const amount = Number(req.body.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) {
+      return res.status(400).json({ error: 'Valor inválido.' });
+    }
+
+    await client.query('BEGIN');
+    const sale = await client.query('SELECT id, total, status, payment_intent_id FROM sales WHERE id=$1', [saleId]);
+    if (!sale.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Venda não encontrada.' });
+    }
+    if (sale.rows[0].status === 'confirmed') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Venda já paga.' });
+    }
+    if (sale.rows[0].payment_intent_id) {
+      await client.query('ROLLBACK');
+      return res.json({ id: sale.rows[0].payment_intent_id, status: 'pending' });
+    }
+
+    const cpfHash = hashCpf(cpf);
+    const idempotencyKey = crypto.createHash('sha256').update(`campelo:${saleId}:${amount}`).digest('hex');
+    const providerResponse = await fetch(paymentProviderUrl, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${paymentProviderToken}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify({ saleId, amount: Math.round(amount * 100), currency: 'BRL', cpfHash, notificationUrl: process.env.PAYMENT_NOTIFY_URL || undefined }),
+      signal: AbortSignal.timeout(15_000)
+    });
+    const payload = await providerResponse.json().catch(() => ({}));
+    if (!providerResponse.ok || !payload.id) throw Object.assign(new Error(payload.message || 'Gateway recusou a cobrança.'), { status: 502 });
+    await client.query('UPDATE sales SET payment_intent_id=$1, payment_provider=$2 WHERE id=$3', [payload.id, 'configured', saleId]);
+    await client.query('COMMIT');
+    res.status(201).json({ id: payload.id, status: payload.status || 'pending', payload });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    next(error);
+  } finally { client.release(); }
+});
+
+app.post('/api/payments/webhook', async (req, res, next) => {
+  try {
+    const signature = req.get('x-campelo-signature');
+    if (!verifyWebhookSignature(req.body, signature, webhookSecret)) return res.status(401).json({ error: 'Assinatura inválida.' });
+    const event = JSON.parse(req.body.toString('utf8'));
+    const intentId = event.paymentIntentId || event.id;
+    const approved = ['paid', 'approved', 'succeeded'].includes(event.status);
+    if (!intentId) return res.status(400).json({ error: 'Evento sem intenção.' });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query('SELECT id, status, total, points, customer_identifier FROM sales WHERE payment_intent_id=$1 FOR UPDATE', [intentId]);
+      if (!result.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Intenção de pagamento não encontrada.' });
+      }
+      const sale = result.rows[0];
+      if (approved && sale.status !== 'confirmed') {
+        await client.query("UPDATE sales SET status='confirmed', confirmed_at=now() WHERE id=$1", [sale.id]);
+        await client.query(`UPDATE customers SET balance=balance+$1, points=points+$2, purchases=purchases+1,
+          lifetime_value=lifetime_value+$3, updated_at=now() WHERE identifier=$4`, [sale.total, sale.points, sale.total, sale.customer_identifier]);
+      }
+      await client.query('COMMIT');
+      res.json({ received: true, status: approved ? 'confirmed' : 'ignored' });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally { client.release(); }
+  } catch (error) { next(error); }
+});
+
 app.post('/api/sales', async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -137,12 +223,9 @@ app.post('/api/sales', async (req, res, next) => {
       await client.query(`INSERT INTO sale_items(sale_id, product_code, product_name, unit_price, final_price, quantity)
         VALUES ($1,$2,$3,$4,$5,$6)`, [id, item.code, item.name, item.unitPrice, item.finalPrice, item.quantity]);
     }
-    await client.query(`UPDATE customers SET purchases=purchases+1,
-      points=points+$1, lifetime_value=lifetime_value+$2, updated_at=now()
-      WHERE identifier=$3`, [points, total, customer]);
     await client.query('COMMIT');
     const customerRecord = await pool.query('SELECT points, purchases, lifetime_value::float AS lifetime_value FROM customers WHERE identifier=$1', [customer]);
-    res.status(201).json({ id, total, savings, points, customer: customerRecord.rows[0] });
+    res.status(201).json({ id, total, savings, points, status: 'pending', customer: customerRecord.rows[0] });
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     if (error.status) return res.status(error.status).json({ error: error.message });

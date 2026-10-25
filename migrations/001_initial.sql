@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS customers (
   identifier TEXT PRIMARY KEY,
+  balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
+  cpf_hash TEXT UNIQUE,
   points INTEGER NOT NULL DEFAULT 0 CHECK (points >= 0),
   purchases INTEGER NOT NULL DEFAULT 0,
   lifetime_value NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -24,8 +26,11 @@ CREATE TABLE IF NOT EXISTS sales (
   total NUMERIC(12,2) NOT NULL CHECK (total >= 0),
   savings NUMERIC(12,2) NOT NULL DEFAULT 0,
   points INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'confirmed',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  status TEXT NOT NULL DEFAULT 'pending',
+  payment_intent_id TEXT UNIQUE,
+  payment_provider TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  confirmed_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS sale_items (

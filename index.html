@@ -98,6 +98,7 @@
     .product-edit input { min-height: 38px; margin: 0; }
     .loyalty { display: flex; justify-content: space-between; align-items: center; }
     .loyalty strong { color: var(--green-dark); font-size: 22px; }
+    .account-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .stock { color: var(--muted); font: 700 12px "Trebuchet MS", sans-serif; }
     .stock.low { color: var(--red); }
     .receipt { text-align: center; }
@@ -145,8 +146,10 @@
 
       <section id="view-escanear" class="view">
         <div class="assistant"><strong>Assistente Campelo</strong><p id="assistantSpeech">Posicione o código no leitor. Vou informar o preço, a validade e as melhores ofertas.</p></div>
-        <div class="scanner" aria-label="Área do leitor de código de barras"><video id="cameraPreview" muted playsinline hidden></video><div class="scan-frame" id="scanFrame"><span>Área de leitura</span></div></div>
-        <div class="action-row"><button class="button" id="cameraButton" type="button">Abrir câmera</button><button class="button secondary" id="manualScanButton" type="button">Digitar código</button></div>
+        <div class="scanner" aria-label="Área do leitor de código de barras"><video id="cameraPreview" muted playsinline hidden></video><canvas id="cameraCanvas" hidden></canvas><div class="scan-frame" id="scanFrame"><span>Área de leitura</span></div></div>
+        <div class="action-row"><button class="button" id="cameraButton" type="button">Abrir câmera</button><button class="button secondary" id="capturePhotoButton" type="button">Tirar foto</button></div>
+        <div class="action-row" style="margin-top:10px"><button class="button secondary" id="manualScanButton" type="button">Digitar código</button><label class="button secondary" for="photoInput" style="text-align:center;display:grid;place-items:center">Escolher foto</label></div>
+        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
         <div class="panel" id="manualScan" hidden><label for="manualCode">Código de barras</label><div class="search-row"><input id="manualCode" inputmode="numeric" autocomplete="off" placeholder="Ex.: 7891000000101"><button class="button" id="findCodeButton" type="button">Buscar</button></div></div>
         <div class="panel" id="recommendations" hidden><span class="eyebrow">Sugestões</span><h3 style="margin-top:5px">Para acompanhar</h3><div id="recommendationList"></div></div>
       </section>
@@ -209,7 +212,7 @@
   <script src="ia-assistant.js"></script>
   <script src="database.js"></script>
   <script>
-    const state = { catalog: [], cart: [], customer: '', totalSavings: 0, cameraStream: null, barcodeDetector: null };
+    const state = { catalog: [], cart: [], customer: '', totalSavings: 0, cameraStream: null, barcodeDetector: null, scanningFrame: 0 };
     const routeNames = ['inicio', 'escanear', 'carrinho', 'ofertas', 'pesquisa', 'admin', 'pagamento', 'comprovante'];
     const money = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -247,6 +250,7 @@
 
     function route(name) {
       if (!routeNames.includes(name)) return;
+      if (name !== 'escanear') stopCamera();
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
       document.querySelectorAll('[data-route].nav-button').forEach(button => button.classList.toggle('active', button.dataset.route === name));
       if (name === 'carrinho') renderCart();
@@ -261,6 +265,7 @@
       const identifier = document.querySelector('#clientIdentifier').value.replace(/\D/g, '');
       if (identifier.length < 8) return showToast('Identificação necessária', 'Informe pelo menos 8 números.');
       state.customer = identifier;
+      loadCustomerAccount();
       route('escanear');
       showToast('Pronto para comprar', 'Use o botão Ler código para testar um produto.');
     }
@@ -373,6 +378,16 @@
             result = { total, savings: state.totalSavings, points, customer: { points } };
           } else throw error;
         }
+        if (!location.hostname.endsWith('.github.io')) {
+          const cpf = state.customer;
+          const paymentResponse = await fetch('./api/payments/intents', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ saleId: result.id, cpf, amount: result.total })
+          });
+          const payment = await paymentResponse.json();
+          if (!paymentResponse.ok) throw new Error(payment.error || 'Não foi possível iniciar o PIX.');
+          showToast('Aguardando PIX', 'Pagamento criado. Confirme no banco antes de sair.');
+        }
         await db.saveSale({
           ...sale, createdAt: now.toISOString(), items: state.cart,
           subtotal: result.total, savings: result.savings, total: result.total, points: result.points
@@ -383,6 +398,7 @@
         document.querySelector('#cartBadge').hidden = true;
         document.querySelector('#exitCode').textContent = code;
         document.querySelector('#receiptDetails').innerHTML = `Cliente ${state.customer.slice(0, 3)}***<br>${method} · ${money(result.total)}<br>${result.points} pontos fidelidade · saldo ${result.customer.points}<br>${now.toLocaleString('pt-BR')}`;
+        await loadCustomerAccount();
         route('comprovante');
         showToast('Venda registrada', `${points} pontos adicionados ao cliente.`);
       } catch (error) {
@@ -393,7 +409,16 @@
       }
     }
 
+    async function loadCustomerAccount() {
+      const customer = await db.getCustomer(state.customer);
+      const panel = document.querySelector('#customerAccount');
+      if (!customer) { panel.hidden = true; return; }
+      panel.hidden = false;
+      panel.innerHTML = `<div class="metric"><strong>${money(customer.balance || 0)}</strong><span>CONSUMIDO</span></div><div class="metric"><strong>${customer.points || 0}</strong><span>PONTOS</span></div>`;
+    }
+
     async function resetPurchase() {
+      stopCamera();
       state.cart = [];
       state.totalSavings = 0;
       state.customer = '';
@@ -427,7 +452,12 @@
       if (offerButton) addToCart(state.catalog.find(item => item.codigo === offerButton.dataset.offerCode));
     });
     document.querySelector('#startButton').addEventListener('click', startShopping);
-    document.querySelector('#cameraButton').addEventListener('click', openCamera);
+    document.querySelector('#cameraButton').addEventListener('click', () => {
+      if (state.cameraStream) stopCamera();
+      else openCamera();
+    });
+    document.querySelector('#capturePhotoButton').addEventListener('click', () => document.querySelector('#photoInput').click());
+    document.querySelector('#photoInput').addEventListener('change', event => detectPhoto(event.target.files[0]));
     document.querySelector('#manualScanButton').addEventListener('click', () => {
       document.querySelector('#manualScan').hidden = false;
       document.querySelector('#manualCode').focus();
@@ -451,43 +481,87 @@
     }
 
     async function openCamera() {
-      if (!('BarcodeDetector' in window)) {
+      stopCamera();
+      if (!window.isSecureContext) {
         document.querySelector('#manualScan').hidden = false;
-        return showToast('Câmera direta indisponível', 'Use a entrada manual ou abra em Chrome atualizado.');
+        return showToast('HTTPS necessário', 'Abra o app por HTTPS para usar a câmera.');
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        document.querySelector('#photoInput').click();
+        return showToast('Usando foto', 'Selecione ou tire uma foto do código.');
       }
       try {
-        state.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-        state.barcodeDetector = state.barcodeDetector || new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+        state.cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
         const video = document.querySelector('#cameraPreview');
         video.srcObject = state.cameraStream;
         video.hidden = false;
-        document.querySelector('#scanFrame').hidden = false;
         await video.play();
-        detectBarcode(video);
+        document.querySelector('#scanFrame').hidden = false;
+        document.querySelector('#cameraButton').textContent = 'Fechar câmera';
+        if ('BarcodeDetector' in window) {
+          state.barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+          detectBarcode(video);
+        } else {
+          showToast('Câmera pronta', 'Tire a foto caso seu navegador não detecte automaticamente.');
+        }
       } catch (error) {
         console.error(error);
-        showToast('Câmera não iniciada', 'Confira a câmera e a permissão do navegador.');
+        document.querySelector('#photoInput').click();
+        showToast('Permissão da câmera', 'Autorize o acesso ou use uma foto do código.');
       }
     }
 
     async function detectBarcode(video) {
-      if (!state.cameraStream?.active) return;
+      if (!state.cameraStream?.active || video.readyState < 2) {
+        state.scanningFrame = requestAnimationFrame(() => detectBarcode(video));
+        return;
+      }
       try {
         const codes = await state.barcodeDetector.detect(video);
-        const code = codes[0]?.rawValue;
-        if (code) {
+        if (codes[0]?.rawValue) {
+          const code = codes[0].rawValue;
           stopCamera();
           findCatalogCode(code);
           return;
         }
-      } catch (error) { console.warn(error); }
-      requestAnimationFrame(() => detectBarcode(video));
+      } catch (error) { console.warn('Leitura automática indisponível:', error); }
+      state.scanningFrame = requestAnimationFrame(() => detectBarcode(video));
     }
 
     function stopCamera() {
+      cancelAnimationFrame(state.scanningFrame);
       state.cameraStream?.getTracks().forEach(track => track.stop());
       state.cameraStream = null;
+      document.querySelector('#cameraPreview').pause?.();
+      document.querySelector('#cameraPreview').srcObject = null;
       document.querySelector('#cameraPreview').hidden = true;
+      document.querySelector('#cameraButton').textContent = 'Abrir câmera';
+    }
+
+    async function detectPhoto(file) {
+      if (!file) return;
+      if (!('BarcodeDetector' in window)) {
+        showToast('Foto recebida', 'Digite o código visível caso o navegador não consiga ler a imagem.');
+        document.querySelector('#manualScan').hidden = false;
+        document.querySelector('#manualCode').focus();
+        return;
+      }
+      try {
+        const bitmap = await createImageBitmap(file);
+        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+        const codes = await detector.detect(bitmap);
+        bitmap.close();
+        if (!codes.length) throw new Error('Código não encontrado');
+        findCatalogCode(codes[0].rawValue);
+      } catch (error) {
+        console.error(error);
+        document.querySelector('#manualScan').hidden = false;
+        document.querySelector('#manualCode').focus();
+        showToast('Código não identificado', 'Digite o código que aparece abaixo da barra.');
+      }
     }
 
     function findManualCode() {
@@ -541,6 +615,10 @@
       link.click();
       URL.revokeObjectURL(url);
     }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopCamera();
+    });
 
     window.addEventListener('load', async () => {
       await loadCatalog();

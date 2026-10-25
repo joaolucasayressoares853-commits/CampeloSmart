@@ -108,6 +108,7 @@
     const customer = {
       identificador: sale.customer,
       points: (existing?.points || 0) + sale.points,
+      balance: (existing?.balance || 0) + sale.total,
       purchases: (existing?.purchases || 0) + 1,
       lifetimeValue: (existing?.lifetimeValue || 0) + sale.total,
       updatedAt: sale.createdAt
