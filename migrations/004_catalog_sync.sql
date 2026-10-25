@@ -1,0 +1,15 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS source_updated_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS products_category_idx ON products(category);
+CREATE INDEX IF NOT EXISTS products_expiry_idx ON products(expiry_date);
+
+CREATE TABLE IF NOT EXISTS catalog_syncs (
+  id BIGSERIAL PRIMARY KEY,
+  source TEXT NOT NULL,
+  status TEXT NOT NULL,
+  received INTEGER NOT NULL DEFAULT 0,
+  imported INTEGER NOT NULL DEFAULT 0,
+  deactivated INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

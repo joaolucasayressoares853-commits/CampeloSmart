@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sales (
   status TEXT NOT NULL DEFAULT 'pending',
   payment_intent_id TEXT UNIQUE,
   payment_provider TEXT,
+  cancelled_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   confirmed_at TIMESTAMPTZ
 );

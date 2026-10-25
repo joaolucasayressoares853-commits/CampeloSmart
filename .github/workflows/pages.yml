@@ -22,7 +22,7 @@ jobs:
       - name: Preparar artefato Pages
         run: |
           mkdir -p dist/icons
-          cp index.html download.html manifest.json sw.js scanner.js ia-assistant.js database.js payments.js produtos.json dist/
+          cp index.html download.html manifest.json sw.js scanner.js ia-assistant.js database.js payments.js produtos.json app-config.example.js dist/
           cp icons/icon-192.svg icons/icon-512.svg dist/icons/
       - uses: actions/upload-pages-artifact@v3
         with:

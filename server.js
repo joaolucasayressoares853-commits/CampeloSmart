@@ -33,6 +33,10 @@ app.use((req, res, next) => {
   next();
 });
 
+function recordName(product) {
+  return product.name || product.code;
+}
+
 function requireAdmin(req, res, next) {
   const token = req.get('x-admin-token');
   const valid = token && crypto.timingSafeEqual(Buffer.from(token), Buffer.from(adminToken));
@@ -72,12 +76,12 @@ async function seedProducts() {
   await pool.query('BEGIN');
   try {
     for (const product of catalog) {
-      await pool.query(`INSERT INTO products(code, name, price, category, expiry_date, emoji)
-        VALUES ($1,$2,$3,$4,$5,$6)
+      await pool.query(`INSERT INTO products(code, name, price, category, expiry_date, emoji, stock)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
         ON CONFLICT (code) DO UPDATE SET
           name=EXCLUDED.name, price=EXCLUDED.price, category=EXCLUDED.category,
           expiry_date=EXCLUDED.expiry_date, emoji=EXCLUDED.emoji, updated_at=now()`,
-      [product.codigo, product.nome, product.preco, product.categoria, product.dataValidade, product.imagem]);
+      [product.codigo, product.nome, product.preco, product.categoria, product.dataValidade, product.imagem, product.estoque ?? 20]);
     }
     await pool.query('COMMIT');
   } catch (error) {
@@ -94,8 +98,9 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/products', async (_req, res, next) => {
   try {
     const result = await pool.query(`SELECT code AS codigo, name AS nome, price::float AS preco,
-      category AS categoria, expiry_date::text AS "dataValidade", emoji AS imagem
-      FROM products WHERE active = TRUE ORDER BY name`);
+      category AS categoria, expiry_date::text AS "dataValidade", emoji AS imagem,
+      stock AS estoque, source AS origem, updated_at AS atualizado
+      FROM products WHERE active = TRUE AND stock > 0 ORDER BY category, name`);
     res.json(result.rows);
   } catch (error) { next(error); }
 });
@@ -204,9 +209,12 @@ app.post('/api/sales', async (req, res, next) => {
       if (!item.codigo || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
         throw Object.assign(new Error('Item inválido.'), { status: 400 });
       }
-      const product = await client.query('SELECT code, name, price::float AS price FROM products WHERE code = $1 AND active = TRUE', [item.codigo]);
+      const product = await client.query(`SELECT code,name,price::float AS price,stock
+        FROM products WHERE code=$1 AND active=true FOR UPDATE`, [item.codigo]);
       if (!product.rowCount) throw Object.assign(new Error(`Produto ${item.codigo} indisponível.`), { status: 400 });
+      if (product.rows[0].stock < item.quantity) throw Object.assign(new Error(`Estoque insuficiente para ${recordName(product.rows[0])}.`), { status: 409 });
       const record = product.rows[0];
+      await client.query('UPDATE products SET stock=stock-$1, updated_at=now() WHERE code=$2', [item.quantity, record.code]);
       const finalPrice = Math.round(record.price * (1 - (Number(item.discountPercent) || 0) / 100) * 100) / 100;
       normalized.push({ code: record.code, name: record.name, unitPrice: record.price, finalPrice, quantity: item.quantity });
     }
@@ -245,6 +253,74 @@ app.get('/api/admin/summary', requireAdmin, async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.post('/api/admin/catalog/sync', requireAdmin, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const source = String(req.body.source || 'admin').slice(0, 80);
+    const products = req.body.products;
+    if (!Array.isArray(products) || products.length > 5000) {
+      return res.status(400).json({ error: 'Catálogo inválido: envie até 5000 produtos.' });
+    }
+    await client.query('BEGIN');
+    let imported = 0;
+    for (const product of products) {
+      const code = String(product.code || product.codigo || '').replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
+      const name = String(product.name || product.nome || '').trim().slice(0, 180);
+      const price = Number(product.price ?? product.preco);
+      const stock = Number(product.stock ?? product.estoque ?? 0);
+      if (!code || !name || !Number.isFinite(price) || price < 0 || !Number.isInteger(stock) || stock < 0) {
+        throw Object.assign(new Error(`Produto inválido no catálogo: ${code || 'sem código'}`), { status: 400 });
+      }
+      await client.query(`INSERT INTO products(code,name,price,category,expiry_date,emoji,stock,source,source_updated_at,active)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now(),true)
+        ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price,
+          category=EXCLUDED.category, expiry_date=EXCLUDED.expiry_date, emoji=EXCLUDED.emoji,
+          stock=EXCLUDED.stock, source=EXCLUDED.source, source_updated_at=now(), active=true, updated_at=now()`,
+      [code, name, price, String(product.category || product.categoria || 'Geral').slice(0, 80), product.expiryDate || product.dataValidade || null,
+       String(product.emoji || product.imagem || '🛒').slice(0, 12), stock, source]);
+      imported += 1;
+    }
+    const activeCodes = products.map(product => String(product.code || product.codigo).replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase()).filter(Boolean);
+    let deactivated = 0;
+    if (activeCodes.length) {
+      const result = await client.query(`UPDATE products SET active=false, updated_at=now()
+        WHERE source=$1 AND active=true AND code <> ALL($2::text[])`, [source, activeCodes]);
+      deactivated = result.rowCount;
+    }
+    await client.query(`INSERT INTO catalog_syncs(source,status,received,imported,deactivated)
+      VALUES ($1,'completed',$2,$3,$4)`, [source, products.length, imported, deactivated]);
+    await client.query('COMMIT');
+    res.status(201).json({ source, received: products.length, imported, deactivated });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (error.status) return res.status(error.status).json({ error: error.message });
+    next(error);
+  } finally { client.release(); }
+});
+
+app.post('/api/sales/:id/cancel', requireAdmin, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const sale = await client.query(`SELECT id,status FROM sales WHERE id=$1 FOR UPDATE`, [req.params.id]);
+    if (!sale.rowCount) return res.status(404).json({ error: 'Venda não encontrada.' });
+    if (sale.rows[0].status !== 'pending') return res.status(409).json({ error: 'Somente venda pendente pode ser cancelada.' });
+    await client.query(`UPDATE products p SET stock=p.stock+i.quantity, updated_at=now()
+      FROM sale_items i WHERE i.sale_id=$1 AND p.code=i.product_code`, [req.params.id]);
+    await client.query("UPDATE sales SET status='cancelled', cancelled_at=now() WHERE id=$1", [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ id: req.params.id, status: 'cancelled' });
+  } catch (error) { await client.query('ROLLBACK').catch(() => {}); next(error); }
+  finally { client.release(); }
+});
+
+app.get('/api/admin/catalog/sync', requireAdmin, async (_req, res, next) => {
+  try {
+    const result = await pool.query('SELECT * FROM catalog_syncs ORDER BY created_at DESC LIMIT 20');
+    res.json(result.rows);
+  } catch (error) { next(error); }
+});
+
 app.put('/api/admin/products/:code', requireAdmin, async (req, res, next) => {
   try {
     const { price, expiryDate, active = true } = req.body;
@@ -263,7 +339,7 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'Endpoint não enco
 app.get('/download', (_req, res) => res.redirect(302, '/download.html'));
 const publicFiles = new Set([
   'index.html', 'download.html', 'manifest.json', 'sw.js',
-  'ia-assistant.js', 'database.js', 'produtos.json',
+  'ia-assistant.js', 'database.js', 'scanner.js', 'produtos.json',
   'icons/icon-192.svg', 'icons/icon-512.svg'
 ]);
 app.use((req, res, next) => {
