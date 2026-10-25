@@ -1,8 +1,50 @@
 [
-  { "codigo": "7891000000101", "nome": "Leite Integral 1L — Campelo", "preco": 5.49, "categoria": "Laticínios", "dataValidade": "2026-10-27", "imagem": "🥛" },
-  { "codigo": "7891000000200", "nome": "Pão de Forma Integral", "preco": 6.99, "categoria": "Padaria", "dataValidade": "2026-10-29", "imagem": "🍞" },
-  { "codigo": "7891000000305", "nome": "Arroz Branco Tipo 1 — 1kg", "preco": 8.5, "categoria": "Mercearia", "dataValidade": "2027-04-15", "imagem": "🍚" },
-  { "codigo": "7891000000402", "nome": "Iogurte Natural — Pote 170g", "preco": 2.99, "categoria": "Laticínios", "dataValidade": "2026-10-26", "imagem": "🥣" },
-  { "codigo": "7891000000509", "nome": "Queijo Mussarela — 400g", "preco": 15.9, "categoria": "Laticínios", "dataValidade": "2026-10-28", "imagem": "🧀" },
-  { "codigo": "7891000000606", "nome": "Banana — Por Kg", "preco": 4.99, "categoria": "Hortifruti", "dataValidade": "2026-10-26", "imagem": "🍌" }
+  {
+    "codigo": "7891000000106",
+    "nome": "Leite Integral 1L — Campelo",
+    "preco": 5.49,
+    "categoria": "Laticínios",
+    "dataValidade": "2026-10-27",
+    "imagem": "🥛"
+  },
+  {
+    "codigo": "7891000000205",
+    "nome": "Pão de Forma Integral",
+    "preco": 6.99,
+    "categoria": "Padaria",
+    "dataValidade": "2026-10-29",
+    "imagem": "🍞"
+  },
+  {
+    "codigo": "7891000000304",
+    "nome": "Arroz Branco Tipo 1 — 1kg",
+    "preco": 8.5,
+    "categoria": "Mercearia",
+    "dataValidade": "2027-04-15",
+    "imagem": "🍚"
+  },
+  {
+    "codigo": "7891000000403",
+    "nome": "Iogurte Natural — Pote 170g",
+    "preco": 2.99,
+    "categoria": "Laticínios",
+    "dataValidade": "2026-10-26",
+    "imagem": "🥣"
+  },
+  {
+    "codigo": "7891000000502",
+    "nome": "Queijo Mussarela — 400g",
+    "preco": 15.9,
+    "categoria": "Laticínios",
+    "dataValidade": "2026-10-28",
+    "imagem": "🧀"
+  },
+  {
+    "codigo": "7891000000601",
+    "nome": "Banana — Por Kg",
+    "preco": 4.99,
+    "categoria": "Hortifruti",
+    "dataValidade": "2026-10-26",
+    "imagem": "🍌"
+  }
 ]
